@@ -103,11 +103,12 @@ def read_ws(ws,client):
             if (message is not None):
                 # send data off
                 packet = json.loads(message)
+                print("packet:",packet)
                 send_all_json(packet)
             else:
                 break
-    except:  # done
-        return
+    except Exception as e:
+        print("Error while reading from websocket: %s" % e)
 
 @sockets.route('/subscribe')
 def subscribe_socket(ws):
@@ -143,10 +144,15 @@ def flask_post_json():
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
-    post = flask_post_json()
-    for k, v in post.items():
-        myWorld.update(entity, k, v)
-    myWorld.set(entity, post)
+    resp = request.json
+    if not resp:
+        resp = flask_post_json()
+    
+    if request.method == 'POST':
+        for k, v in resp.items():
+            myWorld.update(entity, k, v)
+    elif request.method == 'PUT':
+        myWorld.set(entity, resp)
     e = myWorld.get(entity)
     return jsonify(e)
 
@@ -172,5 +178,5 @@ if __name__ == "__main__":
         and run
         gunicorn -k flask_sockets.worker sockets:app
     '''
-    #app.run()
-    os.system("gunicorn -k flask_sockets.worker sockets:app");
+    app.run()
+    #os.system("gunicorn -k flask_sockets.worker sockets:app");

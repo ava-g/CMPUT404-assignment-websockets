@@ -3,12 +3,12 @@
   <head> 
     <title>Websockets Assignment</title> 
     <meta charset="utf-8" /> 
-    <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
+    <meta content='width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
         Copyright 2013 Google, Abram Hindle
 
-        Copyright 2021, Ava Guo
+        Copyright 2021, Modified by Ava Guo
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -23,22 +23,22 @@
         limitations under the License.
     "/>
     <script src="json2.js"></script>
-    </head>
-    <style>
-        body {
-            background-image: url("zeezee.png");
-            height: 100%;
-            width: 100%;
-        }
-        #c {
-            background-image: url("zeezee.png");
-        }
-    </style>
-    <body>
-    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
-
-    <script>
-
+  </head>
+  <body bgcolor="white" height="100%" width="100%">
+    <div id="debug"></div>	
+    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas>
+  <style>
+    body {
+        background-image: url("zeezee.png");
+        height: 100%;
+        width: 100%;
+    }
+    #c {
+        background-image: url("zeezee.png");
+    }
+  </style>
+<script>
+    
 var canvas = document.getElementById('c');
 var host = window.location.host;
 var context = canvas.getContext("2d");
@@ -47,7 +47,6 @@ var H = canvas.height = window.innerHeight-50;
 var wscounter = 0;
 var socket;
 
-var id = "L"+Math.floor(20000000*Math.random());  // Borrowed from https://github.com/uofa-cmput404/cmput404-slides/blob/master/examples/ObserverExampleAJAX/static/observer.js
 var img1 = new Image();
 var img2 = new Image();
 var img3 = new Image();
@@ -82,8 +81,8 @@ function drawCircle(context,entity) {
             fillStyle = entity["colour"];
             strokeStyle = fillStyle;
             arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);
-        }
-        stroke();                                
+        };
+        stroke();        
     }
 }
 
@@ -101,8 +100,6 @@ function clearFrame() {
     with(context) {
         moveTo(0,0);
         context.clearRect(0, 0, W, H);
-        //fillStyle = "#000";
-        //fillRect(0,0,W,H);
     }
 
 }
@@ -154,7 +151,7 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
-    sendJSONXMLHTTPRequest("http://127.0.0.1:5000/entity/" + entity, data, (resp) => resp);
+    socket.send(JSON.stringify( { [entity]:data } ));
 }
 
 var counter = 0;
@@ -263,15 +260,15 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'img':'campfire_zee'});
+    addEntityWithoutName({'x':x, 'y':y, 'img':'unicorn_zee'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'img':'pink_zee'});
+    addEntityWithoutName({'x':x, 'y':y, 'img':'pink_zee'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'img':'unicorn_zee'});
+    addEntityWithoutName({'x':x, 'y':y, 'img':'campfire_zee'});
 });
 
 
@@ -285,8 +282,12 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        fetch('/world')
+          .then(resp => resp.json())
+          .then(data_ => { world = data_; })
+          .then(drawNextFrame());
+        
         console.log("WebSocket is connected.");
-        socket.send("Connection is now open.");  // sends data to server
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -295,11 +296,17 @@ function wsSetup() {
     socket.onmessage = function(msg) {  
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?
+            let resp = JSON.parse(msg.data);
+            let keys = Object.keys(resp);
+            keys.forEach(entity => {
+                world[entity] = resp[entity];
+            });
+            drawNextFrame();
         } catch (e) {
             alert("socket on message: " + e);
         }
-    }; 
+    };
 }
 
 wsSetup();
